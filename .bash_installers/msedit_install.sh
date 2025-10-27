@@ -14,6 +14,7 @@ else
 fi
 
 tar --zstd -xvf edit-${BINARY_VERSION}-${ARCH}-linux-gnu.tar.zst
-cp edit ~/.local/bin/
+mkdir /home/$USER/.local/bin/
+mv -v edit ~/.local/bin/
 exec bash
 
