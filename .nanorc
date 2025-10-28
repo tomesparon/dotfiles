@@ -1,0 +1,152 @@
+# BEHAVIOURS
+# modern bindings (may no exist), jump to end of words, no mouse, cut from
+# cursor to EOL, delete marked lines on one press
+#set modernbindings
+set afterends
+set smarthome
+set cutfromcursor
+set zap
+# wrap long lines and break at spaces
+set softwrap
+set atblanks
+#set regexp
+set historylog
+set positionlog
+
+
+# UI
+set nohelp
+set minibar
+set constantshow
+set indicator
+#set linenumbers
+set guidestripe 80
+set autoindent
+set tabsize 4
+set tabstospaces
+
+# COLOURS
+
+set titlecolor bold,white,latte
+set statuscolor white,latte
+set errorcolor bold,lightwhite,red
+set selectedcolor lightwhite,slate
+set stripecolor ,black
+set scrollercolor latte
+set numbercolor latte
+set keycolor latte
+set functioncolor lightblack
+set minicolor bold,white,lightblack
+set promptcolor bold,white,red
+
+# colors and appearance
+#set boldtext
+#set titlecolor black,lightblue
+#set statuscolor black,lightblue
+#set keycolor black,lightblue
+#set functioncolor lightblue
+#set selectedcolor blue,yellow
+#set stripecolor black,lightblue
+#set numbercolor black,lightblue
+
+
+# key bindings
+
+bind M-/ comment main
+bind ^Z suspend main
+bind ^V paste all
+bind ^Y redo main
+
+
+# Put includes here using:
+## SYNTAX
+# curl https://raw.githubusercontent.com/galenguyer/nano-syntax-highlighting/master/install.sh | bash
+# echo "include $install_path/*.nanorc" >> ~/.nanorc
+# or one by one
+
+include "~/.nano/Dockerfile.nanorc"
+include "~/.nano/Rnw.nanorc"
+include "~/.nano/asciidoc.nanorc"
+include "~/.nano/asm.nanorc"
+include "~/.nano/awk.nanorc"
+include "~/.nano/batch.nanorc"
+include "~/.nano/c.nanorc"
+include "~/.nano/cmake.nanorc"
+include "~/.nano/conf.nanorc"
+include "~/.nano/csh.nanorc"
+include "~/.nano/csharp.nanorc"
+include "~/.nano/css.nanorc"
+include "~/.nano/csv.nanorc"
+include "~/.nano/cython.nanorc"
+include "~/.nano/dot.nanorc"
+include "~/.nano/dotenv.nanorc"
+include "~/.nano/email.nanorc"
+include "~/.nano/etc-hosts.nanorc"
+include "~/.nano/expect.nanorc"
+include "~/.nano/fish.nanorc"
+include "~/.nano/git.nanorc"
+include "~/.nano/gitcommit.nanorc"
+include "~/.nano/go.nanorc"
+include "~/.nano/godot.nanorc"
+include "~/.nano/gradle.nanorc"
+include "~/.nano/html.j2.nanorc"
+include "~/.nano/html.nanorc"
+include "~/.nano/ini.nanorc"
+include "~/.nano/inputrc.nanorc"
+include "~/.nano/java.nanorc"
+include "~/.nano/jrnl.nanorc"
+include "~/.nano/js.nanorc"
+include "~/.nano/json.nanorc"
+include "~/.nano/jsx.nanorc"
+include "~/.nano/julia.nanorc"
+include "~/.nano/keymap.nanorc"
+include "~/.nano/kotlin.nanorc"
+include "~/.nano/lua.nanorc"
+include "~/.nano/m3u.nanorc"
+include "~/.nano/makefile.nanorc"
+include "~/.nano/man.nanorc"
+include "~/.nano/markdown.nanorc"
+include "~/.nano/nanorc.nanorc"
+include "~/.nano/nginx.nanorc"
+include "~/.nano/nmap.nanorc"
+include "~/.nano/ocaml.nanorc"
+include "~/.nano/octave.nanorc"
+include "~/.nano/perl.nanorc"
+include "~/.nano/perl6.nanorc"
+include "~/.nano/php.nanorc"
+include "~/.nano/pkg-config.nanorc"
+include "~/.nano/pkgbuild.nanorc"
+include "~/.nano/powershell.nanorc"
+include "~/.nano/properties.nanorc"
+include "~/.nano/puppet.nanorc"
+include "~/.nano/python.nanorc"
+include "~/.nano/reST.nanorc"
+include "~/.nano/rpmspec.nanorc"
+include "~/.nano/ruby.nanorc"
+include "~/.nano/rust.nanorc"
+include "~/.nano/scala.nanorc"
+include "~/.nano/sed.nanorc"
+include "~/.nano/sh.nanorc"
+include "~/.nano/sieve.nanorc"
+include "~/.nano/sql.nanorc"
+include "~/.nano/subrip.nanorc"
+include "~/.nano/svn.nanorc"
+include "~/.nano/swift.nanorc"
+include "~/.nano/systemd.nanorc"
+include "~/.nano/tcl.nanorc"
+include "~/.nano/tex.nanorc"
+include "~/.nano/toml.nanorc"
+include "~/.nano/ts.nanorc"
+include "~/.nano/twig.nanorc"
+include "~/.nano/v.nanorc"
+include "~/.nano/verilog.nanorc"
+include "~/.nano/vi.nanorc"
+include "~/.nano/x11basic.nanorc"
+include "~/.nano/xml.nanorc"
+include "~/.nano/xresources.nanorc"
+include "~/.nano/yaml.nanorc"
+include "~/.nano/yum.nanorc"
+include "~/.nano/zig.nanorc"
+include "~/.nano/zsh.nanorc"
+include "~/.nano/zshrc.nanorc"
+
