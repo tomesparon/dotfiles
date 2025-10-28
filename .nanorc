@@ -150,3 +150,14 @@ include "~/.nano/zig.nanorc"
 include "~/.nano/zsh.nanorc"
 include "~/.nano/zshrc.nanorc"
 
+
+#sudo apt-get install shellcheck shfm
+##Lint and format
+# change inlcude file to add these
+#linter "shellcheck -f gcc"
+#formatter "shfmt -i 2 -ci -bn -sr"
+
+#syntax "python" "\.py$"
+#color normal "^$"
+#linter "ruff check --output-format=gnu"
+#formatter "black -q -"
