@@ -1,0 +1,283 @@
+#!/usr/bin/env bash
+# GitHub Copilot
+# Cross-platform installer for wezterm + KevinSilvester/wezterm-config
+# Usage: ./wezterm_install [--run-windows]
+set -euo pipefail
+
+REPO_CONFIG="https://github.com/KevinSilvester/wezterm-config.git"
+TMP_DIR="$(mktemp -d)"
+CLEANUP() { rm -rf "$TMP_DIR"; }
+trap CLEANUP EXIT
+
+uname_s="$(uname -s || true)"
+is_windows_env=false
+# Detect Windows-like environments
+if [ "${OS:-}" = "Windows_NT" ] || echo "$uname_s" | grep -Ei 'mingw|msys|cygwin|windows' >/dev/null; then
+    is_windows_env=true
+fi
+
+echo "Detected platform: $uname_s"
+
+install_config_linux() {
+    target_dir="$HOME/.config/wezterm"
+    mkdir -p "$target_dir"
+
+    echo "Cloning config repo into $target_dir ..."
+    if [ -d "$target_dir/.git" ]; then
+        # already a git repo? back it up and clone fresh
+        backup="$target_dir.backup.$(date +%s)"
+        echo "Backing up existing config to $backup"
+        mv "$target_dir" "$backup"
+        mkdir -p "$target_dir"
+    fi
+
+    git clone --depth 1 "$REPO_CONFIG" "$TMP_DIR/wezterm-config" >/dev/null 2>&1 || {
+        echo "Failed to clone config repo. Aborting."
+        return 1
+    }
+
+    # Copy contents (preserve tree)
+    rsync -a --delete "$TMP_DIR/wezterm-config/" "$target_dir/"
+    echo "Config installed to $target_dir"
+}
+
+install_wezterm_deb() {
+    echo "Installing wezterm (.deb) ..."
+    api_json="$(curl -sSfL "https://api.github.com/repos/wez/wezterm/releases/latest")"
+    # find arch
+    arch="$(dpkg --print-architecture 2>/dev/null || true)"
+    case "$arch" in
+        amd64|x86_64) arch_match='amd64|x86_64' ;;
+        arm64|aarch64) arch_match='arm64|aarch64' ;;
+        *) arch_match='' ;;
+    esac
+
+    deb_url="$(echo "$api_json" | grep -Eo 'https://[^"]+\.deb' | grep -E "$arch_match" || true)"
+    if [ -z "$deb_url" ]; then
+        deb_url="$(echo "$api_json" | grep -Eo 'https://[^"]+\.deb' | head -n 1 || true)"
+    fi
+    if [ -z "$deb_url" ]; then
+        echo "Could not find .deb asset in latest release JSON. Aborting."
+        return 1
+    fi
+
+    out="$TMP_DIR/wezterm.deb"
+    echo "Downloading $deb_url ..."
+    curl -L --fail -o "$out" "$deb_url"
+    sudo dpkg -i "$out" || true
+    sudo apt-get update -y
+    sudo apt-get install -f -y
+    echo "wezterm (.deb) installed."
+}
+
+install_wezterm_rpm() {
+    echo "Installing wezterm (.rpm) ..."
+    api_json="$(curl -sSfL "https://api.github.com/repos/wez/wezterm/releases/latest")"
+    arch="$(uname -m)"
+    arch_match=''
+    case "$arch" in
+        x86_64) arch_match='x86_64|amd64' ;;
+        aarch64) arch_match='aarch64|arm64' ;;
+    esac
+
+    rpm_url="$(echo "$api_json" | grep -Eo 'https://[^"]+\.rpm' | grep -E "$arch_match" || true)"
+    if [ -z "$rpm_url" ]; then
+        rpm_url="$(echo "$api_json" | grep -Eo 'https://[^"]+\.rpm' | head -n 1 || true)"
+    fi
+    if [ -z "$rpm_url" ]; then
+        echo "Could not find .rpm asset in latest release JSON. Aborting."
+        return 1
+    fi
+
+    out="$TMP_DIR/wezterm.rpm"
+    echo "Downloading $rpm_url ..."
+    curl -L --fail -o "$out" "$rpm_url"
+    if command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y "$out"
+    elif command -v yum >/dev/null 2>&1; then
+        sudo yum install -y "$out"
+    else
+        sudo rpm -Uvh "$out"
+    fi
+    echo "wezterm (.rpm) installed."
+}
+
+install_linux() {
+    echo "Linux installer starting ..."
+    # Detect package system
+    if command -v dpkg >/dev/null 2>&1; then
+        install_wezterm_deb
+    elif command -v rpm >/dev/null 2>&1; then
+        install_wezterm_rpm
+    else
+        echo "No dpkg or rpm found. Attempting cargo install (requires rust/cargo) ..."
+        if command -v cargo >/dev/null 2>&1; then
+            cargo install --git https://github.com/wez/wezterm --locked wezterm
+        else
+            echo "No supported package manager and cargo missing. Please install wezterm manually."
+            return 1
+        fi
+    fi
+
+    install_config_linux
+    echo "Linux installation finished."
+}
+
+write_windows_ps1() {
+    ps1="$TMP_DIR/wezterm_install_windows.ps1"
+    cat >"$ps1" <<'PS1'
+# WezTerm installer (PowerShell)
+param(
+    [switch]$InstallScoop
+)
+
+function Install-ScoopIfMissing {
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-Host "Scoop not found. Installing scoop (non-elevated) ..."
+        Invoke-Expression (New-Object System.Net.WebClient).DownloadString('https://get.scoop.sh')
+    } else {
+        Write-Host "Scoop already installed."
+    }
+}
+
+function Install-WezTerm {
+    if (Get-Command scoop -ErrorAction SilentlyContinue) {
+        scoop install wezterm
+    } else {
+        Write-Host "Scoop not available. Attempting winget..."
+        if (Get-Command winget -ErrorAction SilentlyContinue) {
+            winget install --id WezTerm.WezTerm -e --source winget
+        } else {
+            Write-Host "No supported installer found (scoop/winget). Please install wezterm manually."
+            exit 1
+        }
+    }
+}
+
+function Install-Config {
+    $target = Join-Path $env:USERPROFILE '.config\wezterm'
+    if (Test-Path $target) {
+        $bak = "$target.backup.$([int][double]::Parse((Get-Date -UFormat %s)))"
+        Write-Host "Backing up existing config to $bak"
+        Rename-Item -Path $target -NewName $bak -Force
+    }
+    git clone --depth 1 'https://github.com/KevinSilvester/wezterm-config.git' $target
+    Write-Host "Config installed to $target"
+}
+
+Write-Host "Starting WezTerm install (PowerShell) ..."
+Install-ScoopIfMissing
+Install-WezTerm
+Install-Config
+Write-Host "Done."
+PS1
+    echo "$ps1"
+}
+
+if [ "$is_windows_env" = true ]; then
+    echo "Preparing Windows PowerShell installer..."
+    ps1_path="$(write_windows_ps1)"
+    echo "PowerShell installer written to: $ps1_path"
+    # If pwsh or powershell.exe available, offer to run it
+    if command -v pwsh >/dev/null 2>&1; then
+        echo "Running PowerShell (pwsh) to perform Windows install..."
+        pwsh -NoProfile -ExecutionPolicy Bypass -File "$ps1_path" || {
+            echo "PowerShell script failed. You can run it manually with Administrator or non-elevated PowerShell:"
+            echo "  pwsh -NoProfile -ExecutionPolicy Bypass -File $ps1_path"
+        }
+    elif command -v powershell.exe >/dev/null 2>&1; then
+        echo "Running Windows PowerShell to perform Windows install..."
+        powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$ps1_path" || {
+            echo "powershell.exe run failed. Run the script manually from PowerShell:"
+            echo "  powershell.exe -NoProfile -ExecutionPolicy Bypass -File $ps1_path"
+        }
+    else
+        echo "No PowerShell binary found in PATH. Please copy and run the generated script on Windows:"
+        echo "  $ps1_path"
+    fi
+    exit 0
+fi
+
+# Non-windows: assume Linux-like
+install_linux
+
+
+# diff --git a/config/domains.lua b/config/domains.lua
+# index 66ade13..6b72795 100644
+# --- a/config/domains.lua
+# +++ b/config/domains.lua
+# @@ -17,7 +17,7 @@ if platform.is_win then
+#           name = 'ssh:wsl',
+#           remote_address = 'localhost',
+#           multiplexing = 'None',
+# -         default_prog = { 'fish', '-l' },
+# +         default_prog = { 'bash', '-l' },
+#           assume_shell = 'Posix',
+#        },
+#     }
+# @@ -26,15 +26,15 @@ if platform.is_win then
+#        {
+#           name = 'wsl:ubuntu-fish',
+#           distribution = 'Ubuntu',
+# -         username = 'kevin',
+# -         default_cwd = '/home/kevin',
+# -         default_prog = { 'fish', '-l' },
+# +         username = 'tesparon',
+# +         default_cwd = '/home/tesparon',
+# +         default_prog = { 'bash', '-l' },
+#        },
+#        {
+#           name = 'wsl:ubuntu-bash',
+#           distribution = 'Ubuntu',
+# -         username = 'kevin',
+# -         default_cwd = '/home/kevin',
+# +         username = 'tesparon',
+# +         default_cwd = '/home/tesparon',
+#           default_prog = { 'bash', '-l' },
+#        },
+#     }
+# diff --git a/config/launch.lua b/config/launch.lua
+# index 7606772..e532824 100644
+# --- a/config/launch.lua
+# +++ b/config/launch.lua
+# @@ -6,16 +6,15 @@ local options = {
+#  }
+
+#  if platform.is_win then
+# -   options.default_prog = { 'pwsh', '-NoLogo' }
+# +   options.default_prog = { 'powershell', '-NoLogo' }
+#     options.launch_menu = {
+# -      { label = 'PowerShell Core', args = { 'pwsh', '-NoLogo' } },
+# +      { label = 'PowerShell Core', args = { 'powershell', '-NoLogo' } },
+#        { label = 'PowerShell Desktop', args = { 'powershell' } },
+#        { label = 'Command Prompt', args = { 'cmd' } },
+# -      { label = 'Nushell', args = { 'nu' } },
+#        { label = 'Msys2', args = { 'ucrt64.cmd' } },
+#        {
+#           label = 'Git Bash',
+# -         args = { 'C:\\Users\\kevin\\scoop\\apps\\git\\current\\bin\\bash.exe' },
+# +         args = { 'C:\\Users\\tesparon\\scoop\\apps\\git\\current\\bin\\bash.exe' },
+#        },
+#     }
+#  elseif platform.is_mac then
+# diff --git a/wezterm.lua b/wezterm.lua
+# index ed1ee9d..fe71af4 100644
+# --- a/wezterm.lua
+# +++ b/wezterm.lua
+# @@ -12,10 +12,15 @@ require('events.tab-title').setup({ hide_active_tab_unseen = false, unseen_icon
+#  require('events.new-tab-button').setup()
+#  require('events.gui-startup').setup()
+
+# -return Config:init()
+# +
+# +local myconfig = Config:init()
+#     :append(require('config.appearance'))
+#     :append(require('config.bindings'))
+#     :append(require('config.domains'))
+#     :append(require('config.fonts'))
+#     :append(require('config.general'))
+#     :append(require('config.launch')).options
+# +
+# +myconfig.ssh_backend = "LibSsh"
+# +
+# +return myconfig

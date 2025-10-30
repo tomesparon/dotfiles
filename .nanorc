@@ -13,6 +13,9 @@ set atblanks
 set historylog
 set positionlog
 
+set brackets ""')>]}"
+set matchbrackets "(<[{)>]}"
+
 
 # UI
 set nohelp
@@ -63,6 +66,10 @@ bind ^Y redo main
 # curl https://raw.githubusercontent.com/galenguyer/nano-syntax-highlighting/master/install.sh | bash
 # echo "include $install_path/*.nanorc" >> ~/.nanorc
 # or one by one
+
+
+#defaults
+include "/usr/share/nano/*.nanorc"
 
 include "~/.nano/Dockerfile.nanorc"
 include "~/.nano/Rnw.nanorc"
